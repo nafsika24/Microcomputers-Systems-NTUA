@@ -1,0 +1,75 @@
+LXI B,03E8H	 	;για την καθυτέρηση(χρήση της DELB)
+MVI E,C8H
+
+START:
+	MVI D,04H
+	CALL KIND
+	CPI 00H
+	JZ START 		;εάν πατηθεί το πλήκτρο 0 απόρριψη και jump στην αρχή
+	CPI 09H  		;επίσης εάν πατηθεί πλήκτρο μεγαλύτερο ή ίσο του 9 απόρριψη
+	JNC START
+
+	;εάν πατήθηκαν πλήκτρα 1-4 jumpp στην  ON_OFF_LSB
+	CPI 01H		;πατήθηκε αριθμός 1?
+	JZ ON_OFF_LSB
+	CPI 02H		;πατήθηκε αριθμός 2?
+	JZ ON_OFF_LSB
+	CPI 03H		;πατήθηκε αριθμός 3?
+	JZ ON_OFF_LSB
+	CPI 04H		;πατήθηκε αριθμός 4?
+	JZ ON_OFF_LSB
+
+
+	;εάν πατήθηκαν πλήκτρα 5-8 jumpp στην  ON_OFF_ΜSB		
+	CPI 05H
+	JZ ON_OFF_MSB
+	CPI 06H
+	JZ ON_OFF_MSB
+	CPI 07H
+	JZ ON_OFF_MSB
+	CPI 08H
+	JZ ON_OFF_MSB
+		
+ON_OFF_LSB:		;συνάρτηση ώστε τα 4 LSB leds να αναβοσβήνουν 4 φορές
+	MOV A,D	;ο D είναι ο μετρητής για τις 4 φορές
+	CPI 00H
+	JZ START	;όταν ο D φτάσει στο 4 jump στην αρχή για εξέταση της επόμενης κατάστασης
+	CALL DELB	;καθύστέρηση ώστε να αναβοσβήνουν με ορατό τρόπο
+	CALL ON_LSB
+	CALL DELB
+	CALL OFF_LSB
+	DCR D		;μείωση του μετρητή
+	JMP ON_OFF_LSB
+
+ON_OFF_MSB:	;συνάρτηση ώστε τα 4 MSB leds να αναβοσβήνουν 4 φορές(όμοια με την παραπάνω συνάρτηση)
+	MOV A,D
+	CPI 00H
+	JZ START
+	CALL DELB
+	CALL ON_MSB
+	CALL DELB
+	CALL OFF_MSB
+	DCR D
+	JMP ON_OFF_MSB
+
+ON_LSB:
+	MVI A,F0H
+	STA 3000H
+RET
+
+OFF_LSB:
+	MVI A,FFH
+	STA 3000H
+RET
+
+ON_MSB:
+	MVI A,0FH
+	STA 3000H
+RET
+
+OFF_MSB:
+	MVI A,FFH
+	STA 3000H
+RET
+
+END

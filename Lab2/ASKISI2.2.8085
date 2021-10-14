@@ -1,0 +1,67 @@
+LXI B,0190H	
+MVI E,C8H
+
+BEGIN:		;Αρχή του προγράμματος (θέση 0813Η) με όλα τα διακοπτάκια στο 			OFF
+		MVI A,00H		
+	CMA	; Αντιστρέφω το περιεχόμενο του Α(1) σε 0 διότι τα leds είναι 				αρνητικής λογικής
+STA 3000H	; Σβήνω όλα τα leds
+
+OFF_ON:		
+	CALL DELB		
+	CALL FORTOSI	;Φορτώνω την είσοδο
+	JNC OFF_ON	;Περιμένω το LSB να γίνει ON
+
+
+ON_OFF:
+	CALL DELB
+	CALL FORTOSI	;Φορτώνω την είσοδο
+	JC ON_OFF	;Περιμένω το LSB να γίνει OFF
+
+2ND_OFF_ON:
+	CALL FORTOSI
+	JC 2ND_ON_OFF	;Περιμένω το LSB να γίνει ξανά ON
+	CALL FLASH	; Όσο είναι ενεργοποιημένο το  push-bottom OFF-ON-OFF
+		;αναβοσβήνουν τα leds για 15sec περίπου
+	CALL DELB	;Καθυστέρηση 15sec 
+	DCR E		;Μετρητής για να ξέρω εάν πέρασαν τα 15 sec
+	MOV A,E
+	CPI 00H
+	JNZ 2ND_OFF_ON  
+	CALL ALL_OFF	;Όταν περάσουν τα 15 sec τα leds σβήνουν
+JMP OFF_ON	;Jump στην αρχή
+
+
+2ND_ON_OFF:	;Εάν όσο αναβοσβήνουν τα leds ενεργοποιηθεί το το  push-bottom OFF-ON-OFF  ξανά ο μετρητής των 15sec ανανεώνεται
+	CALL FORTOSI
+	JNC 3_ON_OFF
+	CALL FLASH	;Όμοια με πάνω
+	CALL DELB
+	DCR E
+	MOV A,E
+	CPI FFH
+	JNZ 2ND_ON_OFF
+JMP OFF_ON
+
+3_ON_OFF:
+	MVI E,C8H
+JMP 2ND_OFF_ON
+
+FLASH:		;Ρουτίνα για να αναβοσβήνουν τα leds
+	MOV A,D
+	CMA
+	MOV D,A
+	STA 3000H
+RET
+
+ALL_OFF:	;Ρουτίνα για να σβήνουν τα leds μετά από 15 sec
+	MVI A,00H
+	CMA
+	STA 3000H
+RET
+
+FORTOSI:	;Φόρτωση των dip switch
+	LDA 2000H
+	RAR		; Περιστροφή δεξιά ώστε CY = LSB
+RET
+
+END

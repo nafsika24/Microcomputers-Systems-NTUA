@@ -1,0 +1,111 @@
+IN 10H
+
+START:
+LDA 2000H
+MVI C,08H		;μετρητής για τα dip switches
+LXI H,0A00H		;τα δεδομένα ξεκινάνε να αποθηκεύονται στη θέση μνήνης 0A00H
+LDA 2000H		;φορτώνεται η κατάσταση των dip switches(ανοικτά ή κλειστά)
+MOV B,A
+MVI E,00H		;στον καταχωρητή E αποθηκεύεται το αποτέλεσμα των πράξεων που θα οδηγείται στα leds
+
+CHECK:			;εαν το dip switch είναι ON στη μνήμη αποθηκεύεται το 1, εάν είναι OFF αποθηκεύεται το 0
+	MOV A,C
+	CPI 00H	;ελέγχω εάν εξετάστηκαν όλα τα dip switches 
+	JZ COMPARE_A0_B0	
+	MOV A,B
+	RAR		;ο έλεγχος των dip switches ξεκινάει από το LSB
+	JC SAVE_MEM 
+	MVI M,00H	;εάν το dip switch είναι OFF αποθηκεύεται το 0
+	CONT:
+	MOV B,A
+	INX H		;επόμενη θέση μνήμης για αποθήκευση της κατάστασης του επόμενου dip switch
+	DCR C		;μείωση του μετρητή
+	JMP CHECK
+
+SAVE_MEM:
+	MVI M,01H	;εάν το dip switch είναι ON αποθηκεύεται το 1
+JMP CONT
+	
+
+COMPARE_A0_B0:	;εκτέλεση της πράξης A0 or B0
+	LXI H,0A00H
+	MOV A,M	;αποθηκεύω το περιεχόμενο της μνήμης(κατάσταση dip switch 0 που αντιστοιχεί στο A0) στον καταχ. Α
+	INX H		;¨κοιτάω στην επόμενη θέση μνήμης (κατάσταση dip switch 1 που αντιστοιχεί στο B0) 
+	ORA M		;A0 or B0
+	CPI 01H
+	JZ ON_X0	;εάν το αποτέλεσμα είναι 1 E<-1
+	MVI E,00H	;αλλιώς Ε<-0
+	JMP COMPARE_A1_B1	;jump στην επόμενη σύγκριση (A1 and B1)
+
+ON_X0:
+	MVI E,01H
+	
+
+COMPARE_A1_B1:	;ομοίως εκτέλεση της πράξης A1 and B1
+	INX H
+	MOV A,M	
+	INX H		
+	ANA M		
+	CPI 01H
+	JZ ON_X1
+	MOV A,E
+	ADI 00H
+	MOV E,A
+	JMP COMPARE_A2_B2
+
+ON_X1:
+	MOV A,E
+	ADI 02H
+	MOV E,A	
+
+COMPARE_A2_B2:	;ομοίως εκτέλεση της πράξης A2 or B2
+	INX H
+	MOV A,M
+	INX H
+	ORA M
+	MOV D,A
+	CPI 01H
+	JZ ON_X2
+	MOV A,E
+	ADI 00H
+	MOV E,A
+	JMP COMPARE_A3_B3
+
+ON_X2:
+	MOV A,E
+	ADI 04H
+	MOV E,A
+
+	
+
+
+COMPARE_A3_B3:	;ομοίως εκτέλεση της πράξης (A3 and B3) xor (the output of A2 or B2)
+	INX H
+	MOV A,M
+	INX H
+	ANA M
+	XRA D
+	CPI 01H
+	JZ ON_X3
+	MOV A,E
+	ADI 00H
+	MOV E,A
+	JMP FLASH
+
+	
+ON_X3:
+	MOV A,E
+	ADI 08H
+	MOV E,A
+	
+
+	
+FLASH:			;ταν όλα τα dip switches έχουν ελεγχθεί το E μεταφέρεται στον καταχωρητή Α 
+	MOV A,E
+	CMA		;ντιστροφή του περιεχομένου του A διότι τα leds είναι αρνητικής λογικής 
+	STA 3000H	;εμφάνιση του A στην είσοδο
+JMP START	
+	 
+END:
+END
+

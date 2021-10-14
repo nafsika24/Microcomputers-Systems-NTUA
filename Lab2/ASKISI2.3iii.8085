@@ -1,0 +1,175 @@
+IN 10H
+BEGIN:
+LXI H,0A00H	;φορτώνω στον καταχωρητή ΗL την διεύθυνση μνήμης 0A00H
+MVI C,04H	;μετρητής C
+
+LOOPA:		;στις 0Α00 έως 0Α03 αποθηκεύω το 0 ώστε αυτό να εμφανίζεται 
+	MOV A,C
+	CPI 00H
+	JZ ZERO_LINE
+	MVI M,10H	
+	INX H	
+	DCR C	
+	JMP LOOPA
+
+
+ZERO_LINE:
+	MVI A,FEH	;FFH = (11111110)bin εξετάζω τη γραμμή 0 
+	STA 2800H	
+	LDA 1800H	;διαβάζω τη στήλη
+	MVI B,07H
+	ANA B
+	MVI E,86H	;εάν ο Α είναι 00000010 σημαίνει ότι πατήθηκε το πλήκτρο της πρώτης στήλης, δηλαδή το INSTR_STEP
+	CPI 06H
+	JZ PRINT	;εμφανίζεται στην οθόνη το INSTR_STEP
+	MVI E,85H
+	CPI 05H	;εάν ο Α είναι 00000101 σημαίνει ότι πατήθηκε το πλήκτρο της δεύτερης στήλης, δηλαδή το FETCH_PC
+	JZ PRINT	;εμφανίζεται στην οθόνη το FETCH_PC
+	MVI E,F7H	;ομοίως για το HRDWR STEP	
+	CPI 03H	
+	JZ PRINT
+
+
+FIRST_LINE:		;εξετάζονται με τη σειρά τα πλήκτρα RUN, FETCH_REG, FETCH_ADDRS της δεύτερης γραμμής
+	MVI A,FDH
+	STA 2800H
+	LDA 1800H
+	MVI B,07H
+	ANA B
+	MVI E,84H	
+	CPI 06H
+	JZ PRINT
+	MVI E,80H
+	CPI 05H
+	JZ PRINT
+	MVI E,82H	
+	CPI 03H
+	JZ PRINT
+
+
+
+SECOND_LINE:		;εξετάζονται με τη σειρά τα πλήκτρα 0, STORE/INCR, DECR της δεύτερης γραμμής
+	MVI A,FBH
+	STA 2800H
+	LDA 1800H
+	MVI B,07H
+	ANA B
+	MVI E,00H
+	CPI 06H
+	JZ PRINT
+	MVI E,83H
+	CPI 05H
+	JZ PRINT
+	MVI E,81H	
+	CPI 03H
+	JZ PRINT
+	
+
+
+THIRD_LINE:		;εξετάζονται με τη σειρά τα πλήκτρα 1, 2, 3 της τρίτης γραμμής
+
+	MVI A,F7H
+	STA 2800H
+	LDA 1800H
+	MVI B,07H
+	ANA B
+	MVI E,01H
+	CPI 06H
+	JZ PRINT
+	MVI E,02H
+	CPI 05H
+	JZ PRINT
+	MVI E,03H	
+	CPI 03H
+	JZ PRINT
+	
+FOURTH_LINE:		;εξετάζονται με τη σειρά τα πλήκτρα 4, 5, 6 της τέταρτης γραμμής
+
+	MVI A,EFH
+	STA 2800H
+	LDA 1800H
+	MVI B,07H
+	ANA B
+	MVI E,04H
+	CPI 06H
+	JZ PRINT
+	MVI E,05H
+	CPI 05H
+	JZ PRINT
+	MVI E,06H	
+	CPI 03H
+	JZ PRINT
+
+FIFTH_LINE:		;εξετάζονται με τη σειρά τα πλήκτρα 7, 8, 9 της πέμπτης γραμμής
+
+	MVI A,DFH
+	STA 2800H
+	LDA 1800H
+	MVI B,07H
+	ANA B
+	MVI E,07H
+	CPI 06H
+	JZ PRINT
+	MVI E,08H
+	CPI 05H
+	JZ PRINT
+	MVI E,09H	
+	CPI 03H
+	JZ PRINT
+	
+
+SIXTH_LINE:		;εξετάζονται με τη σειρά τα πλήκτρα A, B, C της έκτης γραμμής
+
+	MVI A,BFH
+	STA 2800H
+	LDA 1800H
+	MVI B,07H
+	ANA B
+	MVI E,0AH
+	CPI 06H
+	JZ PRINT
+	MVI E,0BH
+	CPI 05H
+	JZ PRINT
+	MVI E,0CH	
+	CPI 03H
+	JZ PRINT
+
+SEVENTH_LINE:		;εξετάζονται με τη σειρά τα πλήκτρα D, E, F της τρίτης γραμμής
+
+	MVI A,7FH
+	STA 2800H
+	LDA 1800H
+	MVI B,07H
+	ANA B
+	MVI E,0DH
+	CPI 06H
+	JZ PRINT
+	MVI E,0EH
+	CPI 05H
+	JZ PRINT
+	MVI E,0FH	
+	CPI 03H
+	JZ PRINT
+	JMP BEGIN	;εάν δεν έχει πατηθεί κανένα πλήκτρο jump στην αρχή και εξέταση ξανά
+PRINT:
+	LXI H,0A04H
+	MOV A,E
+	MVI B,0FH
+	ANA B		;απομονώνω τα 4 LSB και τα αποθηκεύω στη θέση μνήμης 0Α00Η
+	MOV M,A
+	INX H
+	MOV A,E
+	MVI B,F0H
+	ANA B		
+	RRC		;κάνω περιστροφές ώστε να βρω τα LSB από τα MSB
+	RRC
+	RRC
+	RRC
+	MOV M,A
+	LXI D,0A00H
+	CALL STDM	
+	CALL DCD
+	JMP BEGIN
+END
+		
